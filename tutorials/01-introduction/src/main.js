@@ -9,7 +9,7 @@ function drawShip(x, y, a) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(a);
-  ctx.fillStyle = '#00e5ff';
+  ctx.fillStyle = '#00e500';
   ctx.beginPath();
   ctx.moveTo(0, -20);
   ctx.lineTo(-15, 15);

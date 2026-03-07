@@ -50,9 +50,25 @@ function setLayout() {
 }
 
 function openDevTools() {
-  if (rightView && !rightView.webContents.isDevToolsOpened()) {
-    rightView.webContents.openDevTools({ mode: 'undocked' });
-  }
+  if (!rightView || rightView.webContents.isDevToolsOpened()) return;
+
+  rightView.webContents.openDevTools({ mode: 'bottom' });
+
+  // Switch to Console tab once the DevTools UI has initialised
+  rightView.webContents.once('devtools-opened', () => {
+    const dtc = rightView.webContents.devToolsWebContents;
+    if (!dtc) return;
+    dtc
+      .executeJavaScript(
+        `(async () => {
+          while (!globalThis.UI?.inspectorView) {
+            await new Promise(r => setTimeout(r, 50));
+          }
+          UI.inspectorView.showPanel('console');
+        })()`
+      )
+      .catch(() => {});
+  });
 }
 
 function startBrowserSync(tutorialDir) {
@@ -61,11 +77,23 @@ function startBrowserSync(tutorialDir) {
     bsInstance.init(
       {
         server: tutorialDir,
+        // Watch all files in the tutorial directory (index.html + src/**)
+        // so browser-sync sends a reload signal to the client on any change.
+        files: [`${tutorialDir}/**/*`],
         port: BS_PORT,
         open: false,
         notify: false,
         ui: false,
-        logLevel: 'silent'
+        logLevel: 'silent',
+        // Disable the inline snippet injection — the client script is included
+        // directly in each tutorial's index.html as a plain <script src> tag,
+        // which satisfies the strict script-src 'self' CSP.
+        snippetOptions: {
+          rule: {
+            match: /<\/body>/i,
+            fn: (_snippet, match) => match
+          }
+        }
       },
       (err) => {
         if (err) {
@@ -153,7 +181,8 @@ app.whenReady().then(() => {
 
   setLayout();
 
-  // Auto-open devtools for the right panel; reopen if closed
+  // Open DevTools inline (bottom pane), starting on Console tab.
+  // Re-open automatically if the user closes it.
   rightView.webContents.on('did-finish-load', openDevTools);
   rightView.webContents.on('devtools-closed', openDevTools);
 
