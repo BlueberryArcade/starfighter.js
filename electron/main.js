@@ -134,8 +134,9 @@ function watchSrc(srcDir) {
   });
 }
 
-function openInVSCode(dir) {
-  spawn('code', [dir], { cwd: ROOT_DIR });
+function openInVSCode(tutorialDir) {
+  const mainFile = path.join(tutorialDir, 'src', 'main.js');
+  spawn('code', [tutorialDir, mainFile], { cwd: ROOT_DIR });
 }
 
 function navigateToTutorial(tutorialSlug) {
@@ -146,7 +147,7 @@ function navigateToTutorial(tutorialSlug) {
   currentTutorialSlug = tutorialSlug;
   startBrowserSync(tutorialDir);
   watchSrc(srcDir);
-  openInVSCode(srcDir);
+  openInVSCode(tutorialDir);
 }
 
 app.whenReady().then(() => {
@@ -214,7 +215,7 @@ app.whenReady().then(() => {
   // Re-open VS Code for the current tutorial without restarting browser-sync
   ipcMain.on('tutorial:edit', () => {
     if (currentTutorialSlug) {
-      openInVSCode(path.join(TUTORIALS_DIR, currentTutorialSlug, 'src'));
+      openInVSCode(path.join(TUTORIALS_DIR, currentTutorialSlug));
     }
   });
 
