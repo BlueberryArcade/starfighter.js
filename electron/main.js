@@ -54,9 +54,12 @@ function injectFocusOverlay() {
   rightView.webContents
     .executeJavaScript(`
       (function () {
+        // Remove any overlay left over from a previous injection (e.g. after
+        // browser-sync reloads the page when the student saves a file).
         var existing = document.getElementById('_sf_overlay');
         if (existing) existing.remove();
 
+        // --- Focus overlay (z-index: 9999, always on top) ---
         var overlay = document.createElement('div');
         overlay.id = '_sf_overlay';
         overlay.style.cssText = [
@@ -75,8 +78,9 @@ function injectFocusOverlay() {
           'border:1px solid rgba(255,255,255,0.18)',
           'border-radius:10px', 'user-select:none'
         ].join(';');
-        box.innerHTML = '<div style="font-size:1rem;opacity:0.7;margin-bottom:0.4rem">GAME PAUSED</div>' +
-                        '<div style="font-size:1.2rem;font-weight:bold">Click to play</div>';
+        box.innerHTML =
+          '<div style="font-size:1rem;opacity:0.7;margin-bottom:0.4rem">GAME PAUSED</div>' +
+          '<div style="font-size:1.2rem;font-weight:bold">Click to play</div>';
         overlay.appendChild(box);
         document.body.appendChild(overlay);
 
