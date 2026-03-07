@@ -49,26 +49,48 @@ function setLayout() {
   rightView.setBounds({ x: leftWidth, y: 0, width: width - leftWidth, height });
 }
 
-function openDevTools() {
-  if (!rightView || rightView.webContents.isDevToolsOpened()) return;
+function injectFocusOverlay() {
+  if (!rightView) return;
+  rightView.webContents
+    .executeJavaScript(`
+      (function () {
+        var existing = document.getElementById('_sf_overlay');
+        if (existing) existing.remove();
 
-  rightView.webContents.openDevTools({ mode: 'bottom' });
+        var overlay = document.createElement('div');
+        overlay.id = '_sf_overlay';
+        overlay.style.cssText = [
+          'position:fixed', 'inset:0', 'z-index:9999',
+          'background:rgba(0,0,0,0.55)',
+          'display:flex', 'flex-direction:column',
+          'align-items:center', 'justify-content:center',
+          'cursor:pointer', 'font-family:monospace'
+        ].join(';');
 
-  // Switch to Console tab once the DevTools UI has initialised
-  rightView.webContents.once('devtools-opened', () => {
-    const dtc = rightView.webContents.devToolsWebContents;
-    if (!dtc) return;
-    dtc
-      .executeJavaScript(
-        `(async () => {
-          while (!globalThis.UI?.inspectorView) {
-            await new Promise(r => setTimeout(r, 50));
-          }
-          UI.inspectorView.showPanel('console');
-        })()`
-      )
-      .catch(() => {});
-  });
+        var box = document.createElement('div');
+        box.style.cssText = [
+          'color:#fff', 'text-align:center',
+          'padding:1.25rem 2rem',
+          'background:rgba(0,0,0,0.6)',
+          'border:1px solid rgba(255,255,255,0.18)',
+          'border-radius:10px', 'user-select:none'
+        ].join(';');
+        box.innerHTML = '<div style="font-size:1rem;opacity:0.7;margin-bottom:0.4rem">GAME PAUSED</div>' +
+                        '<div style="font-size:1.2rem;font-weight:bold">Click to play</div>';
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        function show() { overlay.style.display = 'flex'; }
+        function hide() { overlay.style.display = 'none'; }
+
+        overlay.addEventListener('click', hide);
+        window.addEventListener('focus', hide);
+        window.addEventListener('blur', show);
+
+        if (document.hasFocus()) hide();
+      })();
+    `)
+    .catch(() => {});
 }
 
 function startBrowserSync(tutorialDir) {
@@ -182,10 +204,8 @@ app.whenReady().then(() => {
 
   setLayout();
 
-  // Open DevTools inline (bottom pane), starting on Console tab.
-  // Re-open automatically if the user closes it.
-  rightView.webContents.on('did-finish-load', openDevTools);
-  rightView.webContents.on('devtools-closed', openDevTools);
+  // Inject the focus overlay into the game panel on every page load.
+  rightView.webContents.on('did-finish-load', injectFocusOverlay);
 
   // Start browser-sync for the first tutorial on launch
   const tutorialDirs = fs.existsSync(TUTORIALS_DIR)
@@ -225,6 +245,9 @@ app.whenReady().then(() => {
     globalShortcut.register('CommandOrControl+R', () => {
       if (rightView) rightView.webContents.reload();
     });
+    // Give keyboard focus to the game panel so input works immediately
+    // when the user switches back to the app (e.g. after saving in VS Code).
+    if (rightView) rightView.webContents.focus();
   });
 
   mainWindow.on('blur', () => {

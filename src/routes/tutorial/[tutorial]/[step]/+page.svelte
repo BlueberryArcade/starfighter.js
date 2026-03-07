@@ -19,12 +19,18 @@
     }
   }
 
+  let contentEl;
+
   onMount(notifyElectron);
-  afterNavigate(notifyElectron);
+
+  afterNavigate(() => {
+    notifyElectron();
+    if (contentEl) contentEl.scrollTop = 0;
+  });
 </script>
 
 <div class="tutorial-layout">
-  <div class="content">
+  <div class="content" bind:this={contentEl}>
     <div class="step-label">
       Tutorial {data.tutorialIndex + 1} &mdash; Step {data.stepIndex + 1} of {data.totalSteps}
     </div>
