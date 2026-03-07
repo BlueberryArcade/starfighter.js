@@ -26,7 +26,7 @@ Take a look at `src/main.js`. Right now it just grabs the canvas element and set
 
 The canvas is 800 × 600 pixels. Let's confirm it's working by filling it with the colour of space.
 
-Add this to the bottom of `main.js`:
+Delete the helloWorld() function and add this to the bottom of `main.js`:
 
 ```js
 ctx.fillStyle = '#0a0a1a';
