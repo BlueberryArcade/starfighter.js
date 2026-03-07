@@ -37,7 +37,7 @@ Save the file. You should see a cyan triangle in the middle of your dark canvas.
 
 ## What those numbers mean
 
-- `shipX` and `shipY` are the centre of the canvas — the ship's anchor point
+- `shipX` and `shipY` are the center of the canvas — the ship's anchor point
 - The three `moveTo`/`lineTo` calls plot the three corners of the triangle
 - Negative `y` goes **up** on a canvas (the top-left is `0, 0`)
 

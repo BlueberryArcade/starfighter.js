@@ -1,15 +1,15 @@
 # Getting Started
 
-Welcome to **Starfighter.js** — a JavaScript tutorial where you'll build a 2D space shooter from scratch using the browser's Canvas API.
+Welcome to **Starfighter.js** — a JavaScript tutorial where you'll build a 2D space fighter from scratch using the Canvas API.
 
-By the end of this tutorial you'll have a fully playable game with a ship, enemies, bullets, and a score. Let's go.
+By the end of this tutorial you'll have a fully playable game with a ship, enemies, lasers, and a score. Let's go.
 
 ## Your workspace
 
 You're looking at a split-screen setup:
 
 - **Left** (here) — tutorial instructions
-- **Right** — your game running live in the browser
+- **Right** — your game running live
 
 Every time you save a file in VS Code, the right panel will update automatically and this window will come back into focus.
 
