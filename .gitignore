@@ -1,0 +1,81 @@
+# eslint cache
+.eslintcache
+
+# modules folders
+node_modules/*
+
+# Svelte
+/.svelte-kit
+/build
+/package
+
+# Local env file
+.config/*
+
+# Images #
+##########
+*.bmp
+*.jpg
+*.jpeg
+*.gif
+*.png
+*.psd
+*.svg
+*.eps
+*.ai
+
+# Media #
+#########
+*.mp3
+*.wav
+*.mp4
+*.m4v
+*.avi
+*.wmv
+
+# Fonts #
+#########
+*.eot
+*.ttf
+*.woff
+*.otf
+
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.tar.gz
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.sql
+dump.rdb
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
