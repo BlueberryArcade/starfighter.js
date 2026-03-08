@@ -51,6 +51,8 @@
     hasError = false;
     errorInfo = null;
     if (contentEl) contentEl.scrollTop = 0;
+    // Remember position so the app reopens to this step.
+    localStorage.setItem('starfighter:lastPath', `/chapter/${data.chapter}/${data.step}`);
   });
 </script>
 
