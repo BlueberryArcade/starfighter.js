@@ -282,11 +282,22 @@ function watchSrc(srcDir) {
   if (!fs.existsSync(srcDir)) return;
 
   watcher = chokidar.watch(srcDir, { ignoreInitial: true });
-  watcher.on('all', () => {
-    if (mainWindow) {
-      mainWindow.show();
-      mainWindow.focus();
+  watcher.on('all', (_event, filePath) => {
+    if (!mainWindow) return;
+
+    // Ignore newly created or empty files — when a student creates a new file
+    // in VS Code (e.g. Ship.js), we don't want to yank focus away before
+    // they've had a chance to type anything.
+    try {
+      const stat = fs.statSync(filePath);
+      if (stat.size === 0) return;
+    } catch {
+      // File was deleted or inaccessible — still switch focus so the game
+      // reloads without the removed module.
     }
+
+    mainWindow.show();
+    mainWindow.focus();
   });
 }
 
