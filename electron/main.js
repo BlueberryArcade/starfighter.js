@@ -312,7 +312,8 @@ app.whenReady().then(() => {
   mainWindow = new BaseWindow({
     title: APP_NAME,
     width: Math.round(width * 0.95),
-    height: 800
+    height: 800,
+    backgroundColor: '#000'
   });
 
   leftView = new WebContentsView({
