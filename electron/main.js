@@ -27,6 +27,7 @@ let watcher = null;
 let currentTutorialSlug = null;
 let consoleMsgQueue = [];
 let consolePanelReady = false;
+let lastGameError = null; // persists so leftView can receive it after hydration
 
 // Ensure only a single instance
 const gotTheLock = app.requestSingleInstanceLock();
@@ -339,9 +340,12 @@ app.whenReady().then(() => {
 
   // Reset console queue when a new page starts loading so we don't replay
   // stale messages from a previous load into the freshly injected panel.
+  // Also clear any error state shown in the tutorial pane.
   rightView.webContents.on('did-start-loading', () => {
     consolePanelReady = false;
     consoleMsgQueue = [];
+    lastGameError = null;
+    if (leftView) leftView.webContents.send('game:clear-error');
   });
 
   // Capture ALL console output (including syntax errors at parse time) from
@@ -356,12 +360,25 @@ app.whenReady().then(() => {
     } else {
       pushConsoleMsg(levelName, message, sourceId, line);
     }
+    // Notify the tutorial pane so the button can change to "Fix in VS Code".
+    if (levelName === 'error' && leftView) {
+      lastGameError = { message, sourceId: sourceId ?? null, line: line ?? null };
+      leftView.webContents.send('game:error', lastGameError);
+    }
   });
 
   // Inject overlays into the game panel on every page load.
   rightView.webContents.on('did-finish-load', () => {
     injectFocusOverlay();
     injectConsolePanel();
+  });
+
+  // Renderer signals this once its IPC listeners are registered (after hydration).
+  // Replay any error that fired before the listener was ready.
+  ipcMain.on('left:ready', () => {
+    if (lastGameError && leftView) {
+      leftView.webContents.send('game:error', lastGameError);
+    }
   });
 
   // Start browser-sync for the first tutorial on launch
@@ -389,11 +406,27 @@ app.whenReady().then(() => {
     navigateToTutorial(tutorialSlug);
   });
 
-  // Re-open VS Code for the current tutorial without restarting browser-sync
-  ipcMain.on('tutorial:edit', () => {
-    if (currentTutorialSlug) {
-      openInVSCode(path.join(TUTORIALS_DIR, currentTutorialSlug));
+  // Re-open VS Code for the current tutorial without restarting browser-sync.
+  // When data includes { sourceId, line }, jump directly to the error location.
+  ipcMain.on('tutorial:edit', (_event, data) => {
+    if (!currentTutorialSlug) return;
+    if (data) {
+      try {
+        const { sourceId, line } = JSON.parse(data);
+        if (sourceId && line) {
+          let filePath = sourceId;
+          const bsOrigin = `http://localhost:${BS_PORT}`;
+          if (filePath.startsWith(bsOrigin)) {
+            filePath = path.join(TUTORIALS_DIR, currentTutorialSlug, filePath.slice(bsOrigin.length));
+          }
+          spawn('code', ['--goto', `${filePath}:${line}`], { cwd: ROOT_DIR });
+          return;
+        }
+      } catch {
+        // fall through to default open
+      }
     }
+    openInVSCode(path.join(TUTORIALS_DIR, currentTutorialSlug));
   });
 
   // Open a specific file+line in VS Code from the console panel's clickable links.

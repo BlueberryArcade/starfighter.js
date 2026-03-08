@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-const validSendChannels = ['tutorial:navigate', 'tutorial:edit'];
-const validReceiveChannels = [];
+const validSendChannels = ['tutorial:navigate', 'tutorial:edit', 'left:ready'];
+const validReceiveChannels = ['game:error', 'game:clear-error'];
 
 contextBridge.exposeInMainWorld('electronAPI', {
   send: (channel, data) => {

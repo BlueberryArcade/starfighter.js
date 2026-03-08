@@ -13,18 +13,38 @@
     }
   }
 
+  let hasError = false;
+  let errorInfo = null;
+
   function openEditor() {
     if (typeof window !== 'undefined' && window.electronAPI) {
-      window.electronAPI.send('tutorial:edit', '');
+      window.electronAPI.send('tutorial:edit', hasError && errorInfo ? JSON.stringify(errorInfo) : '');
     }
   }
 
   let contentEl;
 
-  onMount(notifyElectron);
+  onMount(() => {
+    notifyElectron();
+    if (typeof window !== 'undefined' && window.electronAPI) {
+      window.electronAPI.receive('game:error', ({ message, sourceId, line }) => {
+        hasError = true;
+        errorInfo = { message, sourceId, line };
+      });
+      window.electronAPI.receive('game:clear-error', () => {
+        hasError = false;
+        errorInfo = null;
+      });
+      // Signal main process that listeners are ready — it will replay any
+      // error that fired before this page hydrated.
+      window.electronAPI.send('left:ready', '');
+    }
+  });
 
   afterNavigate(() => {
     notifyElectron();
+    hasError = false;
+    errorInfo = null;
     if (contentEl) contentEl.scrollTop = 0;
   });
 </script>
@@ -55,8 +75,8 @@
       {/if}
     </div>
 
-    <button class="btn btn-edit" on:click={openEditor}>
-      ✏ Edit in VS Code
+    <button class="btn btn-edit" class:btn-edit-error={hasError} on:click={openEditor}>
+      {#if hasError}⚠ Fix in VS Code{:else}✏ Edit in VS Code{/if}
     </button>
   </div>
 </div>
@@ -237,6 +257,17 @@
 
   .btn-edit:hover {
     background: #238636;
+    color: #ffffff;
+  }
+
+  .btn-edit-error {
+    background: #3a1a1a;
+    color: #ff5c5c;
+    border-color: #8b2020;
+  }
+
+  .btn-edit-error:hover {
+    background: #8b2020;
     color: #ffffff;
   }
 </style>
