@@ -100,11 +100,11 @@ function injectFocusOverlay() {
 }
 
 // Push a single message into the in-page console panel.
-function pushConsoleMsg(level, message) {
+function pushConsoleMsg(level, message, sourceId, line) {
   if (!rightView) return;
   rightView.webContents
     .executeJavaScript(
-      `window._sf_addEntry && window._sf_addEntry(${JSON.stringify(level)}, ${JSON.stringify(message)})`
+      `window._sf_addEntry && window._sf_addEntry(${JSON.stringify(level)}, ${JSON.stringify(message)}, ${JSON.stringify(sourceId ?? null)}, ${JSON.stringify(line ?? null)})`
     )
     .catch(() => {});
 }
@@ -160,16 +160,50 @@ function injectConsolePanel() {
 
         var colors = { log: 'rgba(255,255,255,0.82)', warn: '#ffd700', error: '#ff5c5c' };
 
-        function addEntry(level, message) {
-          var entry = document.createElement('div');
-          entry.style.cssText = [
-            'color:' + (colors[level] || colors.log),
-            'padding:2px 0',
-            'border-bottom:1px solid rgba(255,255,255,0.04)',
-            'white-space:pre-wrap', 'word-break:break-all'
+        function addEntry(level, message, sourceId, line) {
+          var row = document.createElement('div');
+          row.style.cssText = [
+            'display:flex', 'align-items:baseline', 'gap:8px',
+            'padding:2px 0', 'border-bottom:1px solid rgba(255,255,255,0.04)'
           ].join(';');
-          entry.textContent = message;
-          logArea.appendChild(entry);
+
+          var text = document.createElement('span');
+          text.style.cssText = [
+            'color:' + (colors[level] || colors.log),
+            'white-space:pre-wrap', 'word-break:break-all', 'flex:1'
+          ].join(';');
+          text.textContent = message;
+          row.appendChild(text);
+
+          // If a source location was provided, make the whole row clickable
+          // and show a filename:line badge on the right.
+          if (sourceId && line) {
+            var filename = sourceId.split('/').pop();
+            var loc = document.createElement('span');
+            loc.textContent = filename + ':' + line;
+            loc.title = 'Open in editor';
+            loc.style.cssText = [
+              'color:rgba(100,180,255,0.65)',
+              'white-space:nowrap', 'flex-shrink:0',
+              'font-size:11px', 'text-decoration:underline'
+            ].join(';');
+            row.appendChild(loc);
+
+            row.style.cursor = 'pointer';
+            row.addEventListener('click', function () {
+              if (window.electronAPI && window.electronAPI.openInEditor) {
+                window.electronAPI.openInEditor(sourceId, line);
+              }
+            });
+            row.addEventListener('mouseover', function () {
+              text.style.textDecoration = 'underline';
+            });
+            row.addEventListener('mouseout', function () {
+              text.style.textDecoration = '';
+            });
+          }
+
+          logArea.appendChild(row);
           logArea.scrollTop = logArea.scrollHeight;
           panel.style.display = 'block';
         }
@@ -187,7 +221,7 @@ function injectConsolePanel() {
       consolePanelReady = true;
       // Replay messages that arrived before the panel was ready (e.g. syntax errors).
       const queued = consoleMsgQueue.splice(0);
-      queued.forEach((m) => pushConsoleMsg(m.level, m.message));
+      queued.forEach((m) => pushConsoleMsg(m.level, m.message, m.sourceId, m.line));
     })
     .catch(() => {});
 }
@@ -313,14 +347,14 @@ app.whenReady().then(() => {
   // Capture ALL console output (including syntax errors at parse time) from
   // the main process side — this fires before did-finish-load, so messages
   // are queued and replayed once the panel DOM is injected.
-  rightView.webContents.on('console-message', (_event, level, message, _line, sourceId) => {
+  rightView.webContents.on('console-message', (_event, level, message, line, sourceId) => {
     // Filter out browser-sync's own client-side chatter.
     if (sourceId && sourceId.includes('browser-sync')) return;
     const levelName = level >= 3 ? 'error' : level >= 2 ? 'warn' : 'log';
     if (!consolePanelReady) {
-      consoleMsgQueue.push({ level: levelName, message });
+      consoleMsgQueue.push({ level: levelName, message, sourceId, line });
     } else {
-      pushConsoleMsg(levelName, message);
+      pushConsoleMsg(levelName, message, sourceId, line);
     }
   });
 
@@ -360,6 +394,19 @@ app.whenReady().then(() => {
     if (currentTutorialSlug) {
       openInVSCode(path.join(TUTORIALS_DIR, currentTutorialSlug));
     }
+  });
+
+  // Open a specific file+line in VS Code from the console panel's clickable links.
+  ipcMain.on('editor:open', (_event, { sourceId, line }) => {
+    if (!sourceId) return;
+    // Convert the browser-sync URL (e.g. http://localhost:3001/src/main.js)
+    // to an absolute filesystem path for the current tutorial.
+    let filePath = sourceId;
+    const bsOrigin = `http://localhost:${BS_PORT}`;
+    if (filePath.startsWith(bsOrigin) && currentTutorialSlug) {
+      filePath = path.join(TUTORIALS_DIR, currentTutorialSlug, filePath.slice(bsOrigin.length));
+    }
+    spawn('code', ['--goto', `${filePath}:${line}`], { cwd: ROOT_DIR });
   });
 
   mainWindow.on('resize', setLayout);

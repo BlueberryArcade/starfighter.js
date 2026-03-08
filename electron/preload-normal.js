@@ -1,4 +1,6 @@
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
-// Right panel (browser-sync output) has no IPC access
-contextBridge.exposeInMainWorld('electronAPI', {});
+contextBridge.exposeInMainWorld('electronAPI', {
+  // Used by the injected console panel to open a source file in VS Code.
+  openInEditor: (sourceId, line) => ipcRenderer.send('editor:open', { sourceId, line })
+});
