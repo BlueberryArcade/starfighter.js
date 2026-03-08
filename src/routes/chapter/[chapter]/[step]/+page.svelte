@@ -103,8 +103,12 @@
       {/if}
     </div>
 
-    {#if data.stepIndex === data.totalSteps - 1 && data.next}
-      <a href={data.next} class="btn btn-next-chapter">Next Chapter →</a>
+    {#if data.stepIndex === data.totalSteps - 1}
+      {#if data.chapterIndex < data.totalChapters - 1 && data.next}
+        <a href={data.next} class="btn btn-next-chapter">Next Chapter →</a>
+      {:else}
+        <span class="btn btn-next-chapter btn-disabled">Congrats! You've finished it!</span>
+      {/if}
     {/if}
 
     <button class="btn btn-edit" class:btn-edit-error={hasError} on:click={openEditor}>
