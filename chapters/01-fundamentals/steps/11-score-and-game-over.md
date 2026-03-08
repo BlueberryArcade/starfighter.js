@@ -155,7 +155,7 @@ Inside the `keydown` listener, add a restart block:
 
 Save and play through until you run out of lives. The game over screen appears with your final score, and R restarts from scratch.
 
-## You built a game
+## You built a game!
 
 Here's everything your game now does:
 
