@@ -37,15 +37,27 @@ export async function load({ params }) {
     next = `/chapter/${nextChapter}/${nextSteps[0]}`;
   }
 
-  const chapterTitle = chapter
-    .replace(/^\d+-/, '')
-    .split('-')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
+  function slugToTitle(slug) {
+    return slug
+      .replace(/^\d+-/, '')
+      .split('-')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  }
+
+  const chapterTitle = slugToTitle(chapter);
+
+  const chapterNav = await Promise.all(
+    chapters.map(async (slug) => {
+      const s = await getSteps(slug).catch(() => []);
+      return { slug, title: slugToTitle(slug), href: s.length ? `/chapter/${slug}/${s[0]}` : null };
+    })
+  );
 
   return {
     chapter,
     chapterTitle,
+    chapterNav,
     step,
     content,
     prev,

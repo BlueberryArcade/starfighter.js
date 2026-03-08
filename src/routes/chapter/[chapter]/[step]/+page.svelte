@@ -23,6 +23,11 @@
   }
 
   let contentEl;
+  let dropdownOpen = false;
+
+  function closeDropdown(e) {
+    if (!e.target.closest?.('.chapter-nav-wrapper')) dropdownOpen = false;
+  }
 
   onMount(() => {
     notifyElectron();
@@ -49,10 +54,33 @@
   });
 </script>
 
+<svelte:window on:click={closeDropdown} />
+
 <div class="chapter-layout">
   <div class="content" bind:this={contentEl}>
     <div class="step-label">
-      Chapter {data.chapterIndex + 1}: {data.chapterTitle} &mdash; Step {data.stepIndex + 1} of {data.totalSteps}
+      <span class="chapter-nav-wrapper">
+        <button class="chapter-title-btn" on:click|stopPropagation={() => (dropdownOpen = !dropdownOpen)}>
+          Chapter {data.chapterIndex + 1}: {data.chapterTitle} <span class="caret">{dropdownOpen ? '▴' : '▾'}</span>
+        </button>
+        {#if dropdownOpen}
+          <div class="chapter-dropdown">
+            {#each data.chapterNav as ch, i}
+              {#if ch.href}
+                <a
+                  href={ch.href}
+                  class="chapter-option"
+                  class:active={ch.slug === data.chapter}
+                  on:click={() => (dropdownOpen = false)}
+                >
+                  <span class="chapter-num">Ch {i + 1}</span>{ch.title}
+                </a>
+              {/if}
+            {/each}
+          </div>
+        {/if}
+      </span>
+      &mdash; Step {data.stepIndex + 1} of {data.totalSteps}
     </div>
 
     <div class="markdown">
@@ -74,6 +102,10 @@
         <span class="btn btn-nav btn-disabled">Next →</span>
       {/if}
     </div>
+
+    {#if data.stepIndex === data.totalSteps - 1 && data.next}
+      <a href={data.next} class="btn btn-next-chapter">Next Chapter →</a>
+    {/if}
 
     <button class="btn btn-edit" class:btn-edit-error={hasError} on:click={openEditor}>
       {#if hasError}⚠ Fix in VS Code{:else}✏ Edit in VS Code{/if}
@@ -104,6 +136,106 @@
     text-transform: uppercase;
     color: #7c84a0;
     margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    flex-wrap: wrap;
+  }
+
+  .chapter-nav-wrapper {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .chapter-title-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: #a0aacc;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    border-radius: 4px;
+    transition: color 0.15s;
+  }
+
+  .chapter-title-btn:hover {
+    color: #ffffff;
+  }
+
+  .caret {
+    font-size: 0.85em;
+    opacity: 0.85;
+  }
+
+  .chapter-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 200;
+    background: #1e2140;
+    border: 1px solid #3a3f6b;
+    border-radius: 8px;
+    min-width: 220px;
+    padding: 0.3rem 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  }
+
+  .chapter-option {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6em;
+    padding: 0.5rem 0.9rem;
+    color: #a0aacc;
+    text-decoration: none;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    transition: background 0.1s, color 0.1s;
+  }
+
+  .chapter-option:hover {
+    background: #2a2f55;
+    color: #ffffff;
+  }
+
+  .chapter-option.active {
+    color: #79c0ff;
+  }
+
+  .chapter-option.active::after {
+    content: '✓';
+    margin-left: auto;
+    opacity: 0.6;
+  }
+
+  .chapter-num {
+    opacity: 0.5;
+    min-width: 2.5em;
+  }
+
+  .btn-next-chapter {
+    background: #1a3a2a;
+    color: #56d364;
+    border: 1px solid #2ea043;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.45rem 1.1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: background 0.15s;
+  }
+
+  .btn-next-chapter:hover {
+    background: #2ea043;
+    color: #ffffff;
   }
 
   .markdown :global(h1) {
