@@ -100,6 +100,37 @@ function injectFocusOverlay() {
     .catch(() => {});
 }
 
+// Override console methods in the game page so objects are displayed as JSON
+// instead of "[object Object]".
+function injectConsoleFormat() {
+  if (!rightView) return;
+  rightView.webContents
+    .executeJavaScript(`
+      (function () {
+        if (window._sf_consoleFmt) return;
+        window._sf_consoleFmt = true;
+
+        function formatArgs(args) {
+          return Array.prototype.map.call(args, function (a) {
+            if (typeof a === 'object' && a !== null) {
+              try { return JSON.stringify(a); } catch { return String(a); }
+            }
+            return a;
+          });
+        }
+
+        var origLog = console.log;
+        var origWarn = console.warn;
+        var origError = console.error;
+
+        console.log = function () { origLog.apply(console, formatArgs(arguments)); };
+        console.warn = function () { origWarn.apply(console, formatArgs(arguments)); };
+        console.error = function () { origError.apply(console, formatArgs(arguments)); };
+      })();
+    `)
+    .catch(() => {});
+}
+
 // Push a single message into the in-page console panel.
 function pushConsoleMsg(level, message, sourceId, line) {
   if (!rightView) return;
@@ -381,6 +412,7 @@ app.whenReady().then(() => {
 
   // Inject overlays into the game panel on every page load.
   rightView.webContents.on('did-finish-load', () => {
+    injectConsoleFormat();
     injectFocusOverlay();
     injectConsolePanel();
   });
