@@ -10,7 +10,7 @@ const bs = createRequire(import.meta.url)('browser-sync');
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT_DIR = path.join(__dirname, '..');
-const TUTORIALS_DIR = path.join(ROOT_DIR, 'tutorials');
+const CHAPTERS_DIR = path.join(ROOT_DIR, 'chapters');
 
 const APP_NAME = 'Starfighter.js';
 app.name = APP_NAME;
@@ -24,7 +24,7 @@ let leftView;
 let rightView;
 let bsInstance = null;
 let watcher = null;
-let currentTutorialSlug = null;
+let currentChapterSlug = null;
 let consoleMsgQueue = [];
 let consolePanelReady = false;
 let lastGameError = null; // persists so leftView can receive it after hydration
@@ -227,15 +227,15 @@ function injectConsolePanel() {
     .catch(() => {});
 }
 
-function startBrowserSync(tutorialDir) {
+function startBrowserSync(chapterDir) {
   const launch = () => {
     bsInstance = bs.create();
     bsInstance.init(
       {
-        server: tutorialDir,
+        server: chapterDir,
         // Watch all files in the tutorial directory (index.html + src/**)
         // so browser-sync sends a reload signal to the client on any change.
-        files: [`${tutorialDir}/**/*`],
+        files: [`${chapterDir}/**/*`],
         port: BS_PORT,
         open: false,
         notify: false,
@@ -290,20 +290,20 @@ function watchSrc(srcDir) {
   });
 }
 
-function openInVSCode(tutorialDir) {
-  const mainFile = path.join(tutorialDir, 'src', 'main.js');
-  spawn('code', [tutorialDir, mainFile], { cwd: ROOT_DIR });
+function openInVSCode(chapterDir) {
+  const mainFile = path.join(chapterDir, 'src', 'main.js');
+  spawn('code', [chapterDir, mainFile], { cwd: ROOT_DIR });
 }
 
-function navigateToTutorial(tutorialSlug) {
-  if (tutorialSlug === currentTutorialSlug) return;
-  const tutorialDir = path.join(TUTORIALS_DIR, tutorialSlug);
-  const srcDir = path.join(tutorialDir, 'src');
+function navigateToChapter(chapterSlug) {
+  if (chapterSlug === currentChapterSlug) return;
+  const chapterDir = path.join(CHAPTERS_DIR, chapterSlug);
+  const srcDir = path.join(chapterDir, 'src');
 
-  currentTutorialSlug = tutorialSlug;
-  startBrowserSync(tutorialDir);
+  currentChapterSlug = chapterSlug;
+  startBrowserSync(chapterDir);
   watchSrc(srcDir);
-  openInVSCode(tutorialDir);
+  openInVSCode(chapterDir);
 }
 
 app.whenReady().then(() => {
@@ -382,34 +382,34 @@ app.whenReady().then(() => {
   });
 
   // Start browser-sync for the first tutorial on launch
-  const tutorialDirs = fs.existsSync(TUTORIALS_DIR)
+  const chapterDirs = fs.existsSync(CHAPTERS_DIR)
     ? fs
-        .readdirSync(TUTORIALS_DIR, { withFileTypes: true })
+        .readdirSync(CHAPTERS_DIR, { withFileTypes: true })
         .filter((e) => e.isDirectory())
         .map((e) => e.name)
         .sort()
     : [];
 
-  if (tutorialDirs.length > 0) {
-    const firstSlug = tutorialDirs[0];
-    const tutorialDir = path.join(TUTORIALS_DIR, firstSlug);
-    const srcDir = path.join(tutorialDir, 'src');
-    currentTutorialSlug = firstSlug;
-    startBrowserSync(tutorialDir);
+  if (chapterDirs.length > 0) {
+    const firstSlug = chapterDirs[0];
+    const chapterDir = path.join(CHAPTERS_DIR, firstSlug);
+    const srcDir = path.join(chapterDir, 'src');
+    currentChapterSlug = firstSlug;
+    startBrowserSync(chapterDir);
     watchSrc(srcDir);
     // VS Code opened when left panel sends tutorial:navigate on mount
   }
 
   // Tutorial navigation from left panel (only acts if slug changed)
-  ipcMain.on('tutorial:navigate', (_event, data) => {
-    const { tutorialSlug } = JSON.parse(data);
-    navigateToTutorial(tutorialSlug);
+  ipcMain.on('chapter:navigate', (_event, data) => {
+    const { chapterSlug } = JSON.parse(data);
+    navigateToChapter(chapterSlug);
   });
 
   // Re-open VS Code for the current tutorial without restarting browser-sync.
   // When data includes { sourceId, line }, jump directly to the error location.
-  ipcMain.on('tutorial:edit', (_event, data) => {
-    if (!currentTutorialSlug) return;
+  ipcMain.on('chapter:edit', (_event, data) => {
+    if (!currentChapterSlug) return;
     if (data) {
       try {
         const { sourceId, line } = JSON.parse(data);
@@ -417,7 +417,7 @@ app.whenReady().then(() => {
           let filePath = sourceId;
           const bsOrigin = `http://localhost:${BS_PORT}`;
           if (filePath.startsWith(bsOrigin)) {
-            filePath = path.join(TUTORIALS_DIR, currentTutorialSlug, filePath.slice(bsOrigin.length));
+            filePath = path.join(CHAPTERS_DIR, currentChapterSlug, filePath.slice(bsOrigin.length));
           }
           spawn('code', ['--goto', `${filePath}:${line}`], { cwd: ROOT_DIR });
           return;
@@ -426,7 +426,7 @@ app.whenReady().then(() => {
         // fall through to default open
       }
     }
-    openInVSCode(path.join(TUTORIALS_DIR, currentTutorialSlug));
+    openInVSCode(path.join(CHAPTERS_DIR, currentChapterSlug));
   });
 
   // Open a specific file+line in VS Code from the console panel's clickable links.
@@ -436,8 +436,8 @@ app.whenReady().then(() => {
     // to an absolute filesystem path for the current tutorial.
     let filePath = sourceId;
     const bsOrigin = `http://localhost:${BS_PORT}`;
-    if (filePath.startsWith(bsOrigin) && currentTutorialSlug) {
-      filePath = path.join(TUTORIALS_DIR, currentTutorialSlug, filePath.slice(bsOrigin.length));
+    if (filePath.startsWith(bsOrigin) && currentChapterSlug) {
+      filePath = path.join(CHAPTERS_DIR, currentChapterSlug, filePath.slice(bsOrigin.length));
     }
     spawn('code', ['--goto', `${filePath}:${line}`], { cwd: ROOT_DIR });
   });

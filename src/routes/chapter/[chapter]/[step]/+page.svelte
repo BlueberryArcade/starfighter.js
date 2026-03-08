@@ -7,8 +7,8 @@
   function notifyElectron() {
     if (typeof window !== 'undefined' && window.electronAPI) {
       window.electronAPI.send(
-        'tutorial:navigate',
-        JSON.stringify({ tutorialSlug: data.tutorial })
+        'chapter:navigate',
+        JSON.stringify({ chapterSlug: data.chapter })
       );
     }
   }
@@ -18,7 +18,7 @@
 
   function openEditor() {
     if (typeof window !== 'undefined' && window.electronAPI) {
-      window.electronAPI.send('tutorial:edit', hasError && errorInfo ? JSON.stringify(errorInfo) : '');
+      window.electronAPI.send('chapter:edit', hasError && errorInfo ? JSON.stringify(errorInfo) : '');
     }
   }
 
@@ -49,10 +49,10 @@
   });
 </script>
 
-<div class="tutorial-layout">
+<div class="chapter-layout">
   <div class="content" bind:this={contentEl}>
     <div class="step-label">
-      Tutorial {data.tutorialIndex + 1} &mdash; Step {data.stepIndex + 1} of {data.totalSteps}
+      Chapter {data.chapterIndex + 1}: {data.chapterTitle} &mdash; Step {data.stepIndex + 1} of {data.totalSteps}
     </div>
 
     <div class="markdown">
@@ -82,7 +82,7 @@
 </div>
 
 <style>
-  .tutorial-layout {
+  .chapter-layout {
     display: flex;
     flex-direction: column;
     height: 100vh;

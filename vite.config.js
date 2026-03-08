@@ -5,7 +5,7 @@ import path from 'path';
 const config = {
   plugins: [sveltekit()],
   server: {
-    fs: { allow: ['./lib', './app', './tutorials'] }
+    fs: { allow: ['./lib', './app', './chapters'] }
   },
   resolve: {
     alias: {
