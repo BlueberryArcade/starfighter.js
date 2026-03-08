@@ -415,6 +415,14 @@ app.whenReady().then(() => {
     globalShortcut.register('CommandOrControl+R', () => {
       if (rightView) rightView.webContents.reload();
     });
+    globalShortcut.register('CommandOrControl+Alt+I', () => {
+      // Open DevTools for whichever pane currently has focus.
+      if (leftView && leftView.webContents.isFocused()) {
+        leftView.webContents.toggleDevTools();
+      } else if (rightView) {
+        rightView.webContents.toggleDevTools();
+      }
+    });
     // Give keyboard focus to the game panel so input works immediately
     // when the user switches back to the app (e.g. after saving in VS Code).
     if (rightView) rightView.webContents.focus();
