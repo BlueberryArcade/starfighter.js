@@ -25,6 +25,8 @@ let rightView;
 let bsInstance = null;
 let watcher = null;
 let currentTutorialSlug = null;
+let consoleMsgQueue = [];
+let consolePanelReady = false;
 
 // Ensure only a single instance
 const gotTheLock = app.requestSingleInstanceLock();
@@ -94,6 +96,99 @@ function injectFocusOverlay() {
         if (document.hasFocus()) hide();
       })();
     `)
+    .catch(() => {});
+}
+
+// Push a single message into the in-page console panel.
+function pushConsoleMsg(level, message) {
+  if (!rightView) return;
+  rightView.webContents
+    .executeJavaScript(
+      `window._sf_addEntry && window._sf_addEntry(${JSON.stringify(level)}, ${JSON.stringify(message)})`
+    )
+    .catch(() => {});
+}
+
+// Inject the console panel DOM into the game page, then replay any messages
+// that arrived before the panel was ready (e.g. syntax errors at parse time).
+function injectConsolePanel() {
+  if (!rightView) return;
+  consolePanelReady = false;
+  rightView.webContents
+    .executeJavaScript(`
+      (function () {
+        if (window._sf_console) return;
+
+        // --- Panel container ---
+        var panel = document.createElement('div');
+        panel.id = '_sf_console';
+        panel.style.cssText = [
+          'position:fixed', 'bottom:0', 'left:0', 'right:0', 'z-index:9998',
+          'background:rgba(10,10,20,0.93)',
+          'border-top:1px solid rgba(255,255,255,0.12)',
+          'font-family:monospace', 'font-size:12px',
+          'display:none'
+        ].join(';');
+
+        // --- Header row ---
+        var header = document.createElement('div');
+        header.style.cssText = [
+          'display:flex', 'justify-content:space-between', 'align-items:center',
+          'padding:3px 8px',
+          'border-bottom:1px solid rgba(255,255,255,0.08)',
+          'color:rgba(255,255,255,0.45)', 'font-size:11px', 'user-select:none'
+        ].join(';');
+        header.appendChild(Object.assign(document.createElement('span'), { textContent: 'CONSOLE' }));
+
+        var closeBtn = document.createElement('button');
+        closeBtn.textContent = '✕';
+        closeBtn.style.cssText = [
+          'background:none', 'border:none', 'color:rgba(255,255,255,0.35)',
+          'cursor:pointer', 'font-size:13px', 'padding:0 2px', 'line-height:1'
+        ].join(';');
+        header.appendChild(closeBtn);
+
+        // --- Scrollable log area ---
+        var logArea = document.createElement('div');
+        logArea.style.cssText = [
+          'max-height:150px', 'overflow-y:auto', 'padding:4px 8px'
+        ].join(';');
+
+        panel.appendChild(header);
+        panel.appendChild(logArea);
+        document.body.appendChild(panel);
+
+        var colors = { log: 'rgba(255,255,255,0.82)', warn: '#ffd700', error: '#ff5c5c' };
+
+        function addEntry(level, message) {
+          var entry = document.createElement('div');
+          entry.style.cssText = [
+            'color:' + (colors[level] || colors.log),
+            'padding:2px 0',
+            'border-bottom:1px solid rgba(255,255,255,0.04)',
+            'white-space:pre-wrap', 'word-break:break-all'
+          ].join(';');
+          entry.textContent = message;
+          logArea.appendChild(entry);
+          logArea.scrollTop = logArea.scrollHeight;
+          panel.style.display = 'block';
+        }
+
+        closeBtn.addEventListener('click', function () {
+          panel.style.display = 'none';
+        });
+
+        // Expose so the main process can push messages in via executeJavaScript.
+        window._sf_console = true;
+        window._sf_addEntry = addEntry;
+      })();
+    `)
+    .then(() => {
+      consolePanelReady = true;
+      // Replay messages that arrived before the panel was ready (e.g. syntax errors).
+      const queued = consoleMsgQueue.splice(0);
+      queued.forEach((m) => pushConsoleMsg(m.level, m.message));
+    })
     .catch(() => {});
 }
 
@@ -208,8 +303,32 @@ app.whenReady().then(() => {
 
   setLayout();
 
-  // Inject the focus overlay into the game panel on every page load.
-  rightView.webContents.on('did-finish-load', injectFocusOverlay);
+  // Reset console queue when a new page starts loading so we don't replay
+  // stale messages from a previous load into the freshly injected panel.
+  rightView.webContents.on('did-start-loading', () => {
+    consolePanelReady = false;
+    consoleMsgQueue = [];
+  });
+
+  // Capture ALL console output (including syntax errors at parse time) from
+  // the main process side — this fires before did-finish-load, so messages
+  // are queued and replayed once the panel DOM is injected.
+  rightView.webContents.on('console-message', (_event, level, message, _line, sourceId) => {
+    // Filter out browser-sync's own client-side chatter.
+    if (sourceId && sourceId.includes('browser-sync')) return;
+    const levelName = level >= 3 ? 'error' : level >= 2 ? 'warn' : 'log';
+    if (!consolePanelReady) {
+      consoleMsgQueue.push({ level: levelName, message });
+    } else {
+      pushConsoleMsg(levelName, message);
+    }
+  });
+
+  // Inject overlays into the game panel on every page load.
+  rightView.webContents.on('did-finish-load', () => {
+    injectFocusOverlay();
+    injectConsolePanel();
+  });
 
   // Start browser-sync for the first tutorial on launch
   const tutorialDirs = fs.existsSync(TUTORIALS_DIR)
