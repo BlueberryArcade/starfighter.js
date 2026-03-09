@@ -1,6 +1,23 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { marked } from 'marked';
+import { markedHighlight } from 'marked-highlight';
+import hljs from 'highlight.js/lib/core';
+import javascript from 'highlight.js/lib/languages/javascript';
+
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('js', javascript);
+
+marked.use(
+  markedHighlight({
+    highlight(code, lang) {
+      if (lang && hljs.getLanguage(lang)) {
+        return hljs.highlight(code, { language: lang }).value;
+      }
+      return code;
+    }
+  })
+);
 
 const CHAPTERS_DIR = path.join(process.cwd(), 'chapters');
 
