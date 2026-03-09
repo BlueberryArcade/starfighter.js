@@ -4,9 +4,9 @@ The game has three enemy types now. Let's give the player something new too — 
 
 ## The plan
 
-A power-up will float down from the top of the screen and settle at the same height as the player's ship. The player flies into it to pick it up. When collected, the ship's weapon changes from the single blaster to a **dual blaster** that fires two shots from either side of the ship.
+A power-up will fall from the top of the screen, just like an enemy. The player can collect it in two ways: fly into it, or shoot it. Either way, the ship's weapon changes from the single blaster to a **dual blaster** that fires two shots from either side of the ship.
 
-## Create `power-up.js`
+## Create `PowerUp.js`
 
 Create a new file `src/PowerUp.js`:
 
@@ -14,24 +14,16 @@ Create a new file `src/PowerUp.js`:
 import { ctx } from './game.js';
 
 export default class PowerUp {
-  constructor(x, targetY, type) {
+  constructor(x, type) {
     this.x = x;
     this.y = -20;
-    this.targetY = targetY;
     this.type = type;
     this.speed = 1.5;
-    this.settled = false;
+    this.radius = 15;
   }
 
   update() {
-    if (!this.settled) {
-      this.y = this.y + this.speed;
-
-      if (this.y >= this.targetY) {
-        this.y = this.targetY;
-        this.settled = true;
-      }
-    }
+    this.y = this.y + this.speed;
   }
 
   draw() {
@@ -50,10 +42,14 @@ export default class PowerUp {
 
     ctx.restore();
   }
+
+  isOffScreen() {
+    return this.y > 620;
+  }
 }
 ```
 
-The constructor takes a `targetY` parameter — the y-position where the power-up should stop falling. We'll pass in the ship's y-position when we create it. This way the PowerUp class doesn't need to know anything about the ship — it just knows where to stop.
+The power-up has `update()`, `draw()`, and `isOffScreen()` — the same interface as enemies and projectiles. It falls at a steady pace and disappears if it reaches the bottom without being collected.
 
 ## Import it in `main.js`
 
@@ -79,34 +75,74 @@ In `spawnEnemies()`, add a chance to spawn a power-up. Add this after the enemy 
   // Spawn a power-up roughly every 15 seconds.
   if (frameCount % 900 === 0) {
     const x = Math.random() * (canvas.width - 60) + 30;
-    powerups.push(new PowerUp(x, ship.y, 'dualBlaster'));
+    powerups.push(new PowerUp(x, 'dualBlaster'));
   }
 ```
 
-## Update and draw power-ups
+## Collect power-ups
 
-In `loop()`, add this block after `updateEnemies()` and before `drawHUD()`:
+A power-up can be collected two ways: the ship touches it, or a projectile hits it. Add this function alongside your other game functions in `main.js`:
+
+```js
+function collectPowerUp(type) {
+  ship.weapon = type;
+  ship.weaponTimer = 600;
+}
+```
+
+Then in `loop()`, add this block after `updateEnemies()` and before `drawHUD()`:
 
 ```js
   // --- Power-ups ---
   for (let i = powerups.length - 1; i >= 0; i--) {
     powerups[i].update();
-    powerups[i].draw();
+
+    if (powerups[i].isOffScreen()) {
+      powerups.splice(i, 1);
+      continue;
+    }
 
     // Check if the ship touches this power-up.
     const dx = ship.x - powerups[i].x;
     const dy = ship.y - powerups[i].y;
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    if (distance < 25) {
-      ship.weapon = powerups[i].type;
-      ship.weaponTimer = 600;
+    if (distance < powerups[i].radius + 15) {
+      collectPowerUp(powerups[i].type);
       powerups.splice(i, 1);
+      continue;
     }
+
+    // Check if any projectile hits this power-up.
+    let collected = false;
+    for (let j = projectiles.length - 1; j >= 0; j--) {
+      const px = projectiles[j].x - powerups[i].x;
+      const py = projectiles[j].y - powerups[i].y;
+      const pd = Math.sqrt(px * px + py * py);
+
+      if (pd < powerups[i].radius) {
+        collectPowerUp(powerups[i].type);
+        projectiles.splice(j, 1);
+        collected = true;
+        break;
+      }
+    }
+
+    if (collected) {
+      powerups.splice(i, 1);
+      continue;
+    }
+
+    powerups[i].draw();
   }
 ```
 
-When the ship gets close enough, we set `ship.weapon` to the power-up's type and start a timer. The power-up is removed from the array.
+There are two collision checks per power-up:
+
+1. **Ship collision** — the same distance check we use everywhere. The `+ 15` accounts for the ship's size.
+2. **Projectile collision** — loops through the projectiles array. If any projectile is close enough, the power-up is collected and the projectile is consumed.
+
+Either way, `collectPowerUp()` is called with the power-up's type. Extracting this into a function avoids duplicating the weapon-switching logic.
 
 ## Add weapon state to the Ship class
 
@@ -150,7 +186,7 @@ Then add this method to the Ship class:
   }
 ```
 
-The dual blaster creates two Blaster instances offset to the left and right of the ship. The default weapon fires a single one from the center. Notice that `Ship.js` now imports `blaster.js` — files can import from each other as needed.
+The dual blaster creates two Blaster instances offset to the left and right of the ship. The default weapon fires a single one from the center. Notice that `Ship.js` now imports `Blaster.js` — files can import from each other as needed.
 
 ## Update the keydown listener
 
@@ -195,6 +231,6 @@ In `drawHUD()`, add a line to show the current weapon:
   }
 ```
 
-Save all files and play. After about 15 seconds, a green diamond will float down and park at your altitude. Fly into it and your single blaster becomes a dual blaster for 10 seconds (600 frames). You'll see two shots fire from the sides of your ship.
+Save all files and play. After about 15 seconds, a green diamond will fall from the sky. You can either fly into it or shoot it — either way, your single blaster becomes a dual blaster for 10 seconds (600 frames). You'll see two shots fire from the sides of your ship.
 
 In the next step, we'll add a more exotic weapon type.

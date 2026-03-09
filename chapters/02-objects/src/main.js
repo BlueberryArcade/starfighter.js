@@ -6,6 +6,8 @@ import Enemy from './Enemy.js';
 import FastEnemy from './FastEnemy.js';
 import TankEnemy from './TankEnemy.js';
 
+import PowerUp from './PowerUp.js';
+
 const ship = new Ship();
 
 // An array of active laser objects.
@@ -14,14 +16,17 @@ const projectiles = [];
 // All active enemies are stored here, each with an x and y position.
 const enemies = [];
 
+// Power ups
+const powerups = [];
+
 // frameCount increases by 1 every frame.
 let frameCount = 0;
 
 // Score increases each time an enemy is destroyed.
 let score = 0;
 
-// The player starts with 3 lives.
-let lives = 3;
+// The player starts with 9 lives.
+let lives = 9;
 
 // When this is true, the game loop stops updating and shows a game over screen.
 let gameOver = false;
@@ -46,19 +51,22 @@ window.addEventListener('keydown', function(event) {
   keys[event.key] = true;
 
   // Fire a laser when the spacebar is pressed.
-  if (event.key === ' ') {
-    projectiles.push(new Blaster(ship.x, ship.y - 20));
+   if (event.key === ' ') {
+    ship.fire(projectiles);
   }
 
   // Press R to restart after game over.
   if ((event.key === 'r' || event.key === 'R') && gameOver) {
     score = 0;
-    lives = 3;
+    lives = 9;
     gameOver = false;
     frameCount = 0;
     ship.x = canvas.width / 2;
+    ship.weapon = 'blaster';
+    ship.weaponTimer = 0;
     projectiles.length = 0;
     enemies.length = 0;
+    powerups.length = 0;
   }
 });
 
@@ -75,18 +83,9 @@ function drawStars() {
   }
 }
 
-// Draws the player's ship at its current position.
-function drawShip() {
-  ctx.save();
-  ctx.translate(shipX, shipY);
-  ctx.fillStyle = '#00e5ff';
-  ctx.beginPath();
-  ctx.moveTo(0, -20);
-  ctx.lineTo(-15, 15);
-  ctx.lineTo(15, 15);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
+function collectPowerUp(type) {
+  ship.weapon = type;
+  ship.weaponTimer = 600;
 }
 
 // Checks every laser against every enemy.
@@ -127,6 +126,12 @@ function spawnEnemies() {
       enemies.push(new Enemy(x, -20));
     }
   }
+
+  // Spawn a power-up roughly every 15 seconds.
+  if (frameCount % 900 === 0) {
+    const x = Math.random() * (canvas.width - 60) + 30;
+    powerups.push(new PowerUp(x, 'dualBlaster'));
+  }
 }
 
 // Spawns new enemies on a timer, moves all existing enemies downward,
@@ -156,6 +161,11 @@ function drawHUD() {
 
   ctx.fillText('Score: ' + score, 10, 30);
   ctx.fillText('Lives: ' + lives, 10, 55);
+
+  if (ship.weapon !== 'blaster') {
+    ctx.fillStyle = '#44ff44';
+    ctx.fillText('Weapon: ' + ship.weapon, 10, 80);
+  }
 }
 
 function updateProjectiles(){
@@ -171,6 +181,52 @@ function updateProjectiles(){
   }
 
 }
+
+function updatePowerups() {
+ // --- Power-ups ---
+  for (let i = powerups.length - 1; i >= 0; i--) {
+    powerups[i].update();
+
+    if (powerups[i].isOffScreen()) {
+      powerups.splice(i, 1);
+      continue;
+    }
+
+    // Check if the ship touches this power-up.
+    const dx = ship.x - powerups[i].x;
+    const dy = ship.y - powerups[i].y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance < powerups[i].radius + 15) {
+      collectPowerUp(powerups[i].type);
+      powerups.splice(i, 1);
+      continue;
+    }
+
+    // Check if any projectile hits this power-up.
+    let collected = false;
+    for (let j = projectiles.length - 1; j >= 0; j--) {
+      const px = projectiles[j].x - powerups[i].x;
+      const py = projectiles[j].y - powerups[i].y;
+      const pd = Math.sqrt(px * px + py * py);
+
+      if (pd < powerups[i].radius) {
+        collectPowerUp(powerups[i].type);
+        projectiles.splice(j, 1);
+        collected = true;
+        break;
+      }
+    }
+
+    if (collected) {
+      powerups.splice(i, 1);
+      continue;
+    }
+
+    powerups[i].draw();
+  }
+}
+
 // loop() is the heartbeat of the game.
 function loop() {
   ctx.fillStyle = '#0a0a1a';
@@ -203,6 +259,7 @@ function loop() {
   updateProjectiles();
   checkCollisions();
   updateEnemies();
+  updatePowerups();
 
   drawHUD();
 

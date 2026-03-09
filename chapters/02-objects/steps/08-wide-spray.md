@@ -96,7 +96,7 @@ Back in `main.js`, update the power-up spawning in `spawnEnemies()`. Replace the
 ```js
   if (frameCount % 900 === 0) {
     const x = Math.random() * (canvas.width - 60) + 30;
-    powerups.push(new PowerUp(x, ship.y, 'dualBlaster'));
+    powerups.push(new PowerUp(x, 'dualBlaster'));
   }
 ```
 
@@ -106,7 +106,7 @@ With:
   if (frameCount % 900 === 0) {
     const x = Math.random() * (canvas.width - 60) + 30;
     const type = Math.random() < 0.5 ? 'dualBlaster' : 'wideSpray';
-    powerups.push(new PowerUp(x, ship.y, type));
+    powerups.push(new PowerUp(x, type));
   }
 ```
 

@@ -10,8 +10,8 @@ Add these near the top of `main.js` with the other variable declarations:
 // Score increases each time an enemy is destroyed.
 let score = 0;
 
-// The player starts with 3 lives. An enemy reaching the bottom costs one.
-let lives = 3;
+// The player starts with 9 lives. An enemy reaching the bottom costs one.
+let lives = 9;
 
 // When this is true, the game loop stops updating and shows a game over screen.
 let gameOver = false;
@@ -142,7 +142,7 @@ Inside the `keydown` listener, add a restart block:
   if ((event.key === 'r' || event.key === 'R') && gameOver) {
     // Reset all game state to its starting values.
     score = 0;
-    lives = 3;
+    lives = 9;
     gameOver = false;
     frameCount = 0;
     shipX = canvas.width / 2;
