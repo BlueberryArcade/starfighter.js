@@ -27,6 +27,8 @@ let watcher = null;
 let currentChapterSlug = null;
 let consoleMsgQueue = [];
 let consolePanelReady = false;
+let watchQueue = [];
+let watchPanelReady = false;
 let lastGameError = null; // persists so leftView can receive it after hydration
 
 // Ensure only a single instance
@@ -123,11 +125,35 @@ function injectConsoleFormat() {
         var origWarn = console.warn;
         var origError = console.error;
 
-        console.log = function () { origLog.apply(console, formatArgs(arguments)); };
+        console.log = function () {
+          // Watch pattern: console.log('name', value) — 2 args, first is a string.
+          // Emit a sentinel-prefixed message so the main process routes it to the
+          // watch panel instead of the console panel.
+          if (arguments.length === 2 && typeof arguments[0] === 'string') {
+            var name = arguments[0];
+            var val = arguments[1];
+            var formatted = (typeof val === 'object' && val !== null)
+              ? (function () { try { return JSON.stringify(val); } catch (e) { return String(val); } })()
+              : String(val);
+            origLog('\x00' + name + '\x00' + formatted);
+            return;
+          }
+          origLog.apply(console, formatArgs(arguments));
+        };
         console.warn = function () { origWarn.apply(console, formatArgs(arguments)); };
         console.error = function () { origError.apply(console, formatArgs(arguments)); };
       })();
     `)
+    .catch(() => {});
+}
+
+// Push a name/value update into the in-page watch panel.
+function pushWatchValue(name, value) {
+  if (!rightView) return;
+  rightView.webContents
+    .executeJavaScript(
+      `window._sf_watch_update && window._sf_watch_update(${JSON.stringify(name)}, ${JSON.stringify(value)})`
+    )
     .catch(() => {});
 }
 
@@ -138,6 +164,87 @@ function pushConsoleMsg(level, message, sourceId, line) {
     .executeJavaScript(
       `window._sf_addEntry && window._sf_addEntry(${JSON.stringify(level)}, ${JSON.stringify(message)}, ${JSON.stringify(sourceId ?? null)}, ${JSON.stringify(line ?? null)})`
     )
+    .catch(() => {});
+}
+
+// Inject the watch panel into the top-right corner of the game page.
+// Values are pushed in from the main process via window._sf_watch_update(name, value),
+// which is called whenever console.log('name', value) is detected.
+function injectWatchPanel() {
+  if (!rightView) return;
+  watchPanelReady = false;
+  rightView.webContents
+    .executeJavaScript(`
+      (function () {
+        if (window._sf_watchPanel) return;
+
+        var panel = document.createElement('div');
+        panel.id = '_sf_watch';
+        panel.style.cssText = [
+          'position:fixed', 'top:8px', 'right:8px', 'z-index:9997',
+          'background:rgba(10,10,20,0.82)',
+          'border:1px solid rgba(255,255,255,0.10)',
+          'border-radius:6px',
+          'font-family:monospace', 'font-size:11px',
+          'padding:4px 8px 5px',
+          'min-width:120px',
+          'display:none',
+          'user-select:text',
+          'cursor:default'
+        ].join(';');
+
+        var header = document.createElement('div');
+        header.textContent = 'WATCH';
+        header.style.cssText = [
+          'color:rgba(255,255,255,0.28)',
+          'font-size:9px',
+          'letter-spacing:0.08em',
+          'margin-bottom:3px'
+        ].join(';');
+        panel.appendChild(header);
+
+        var rows = document.createElement('div');
+        panel.appendChild(rows);
+        document.body.appendChild(panel);
+
+        var valueEls = {};
+
+        window._sf_watchPanel = true;
+        window._sf_watch_update = function (name, value) {
+          if (!valueEls[name]) {
+            var row = document.createElement('div');
+            row.style.cssText = 'display:flex;gap:5px;padding:1px 0;';
+
+            var keyEl = document.createElement('span');
+            keyEl.style.cssText = 'color:rgba(100,180,255,0.72);white-space:nowrap;';
+            keyEl.textContent = name;
+
+            var sep = document.createElement('span');
+            sep.style.cssText = 'color:rgba(255,255,255,0.18);';
+            sep.textContent = '=';
+
+            var valEl = document.createElement('span');
+            valEl.style.cssText = 'color:rgba(255,255,255,0.82);white-space:nowrap;';
+            valEl.textContent = value;
+
+            row.appendChild(keyEl);
+            row.appendChild(sep);
+            row.appendChild(valEl);
+            rows.appendChild(row);
+            valueEls[name] = valEl;
+          } else {
+            valueEls[name].textContent = value;
+          }
+
+          panel.style.display = 'block';
+        };
+      })();
+    `)
+    .then(() => {
+      watchPanelReady = true;
+      const queued = watchQueue.splice(0);
+      queued.forEach(({ name, value }) => pushWatchValue(name, value));
+    })
     .catch(() => {});
 }
 
@@ -387,6 +494,8 @@ app.whenReady().then(() => {
   rightView.webContents.on('did-start-loading', () => {
     consolePanelReady = false;
     consoleMsgQueue = [];
+    watchPanelReady = false;
+    watchQueue = [];
     lastGameError = null;
     if (leftView) leftView.webContents.send('game:clear-error');
   });
@@ -397,6 +506,21 @@ app.whenReady().then(() => {
   rightView.webContents.on('console-message', (_event, level, message, line, sourceId) => {
     // Filter out browser-sync's own client-side chatter.
     if (sourceId && sourceId.includes('browser-sync')) return;
+
+    // Watch pattern: console.log('name', value) is formatted with a null-byte
+    // sentinel by injectConsoleFormat so we can reliably detect and route it here.
+    if (message.startsWith('\x00')) {
+      const parts = message.split('\x00');
+      const name = parts[1] ?? '';
+      const value = parts[2] ?? '';
+      if (!watchPanelReady) {
+        watchQueue.push({ name, value });
+      } else {
+        pushWatchValue(name, value);
+      }
+      return;
+    }
+
     const levelName = level >= 3 ? 'error' : level >= 2 ? 'warn' : 'log';
     if (!consolePanelReady) {
       consoleMsgQueue.push({ level: levelName, message, sourceId, line });
@@ -414,6 +538,7 @@ app.whenReady().then(() => {
   rightView.webContents.on('did-finish-load', () => {
     injectConsoleFormat();
     injectFocusOverlay();
+    injectWatchPanel();
     injectConsolePanel();
   });
 
