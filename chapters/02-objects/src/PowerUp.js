@@ -18,7 +18,15 @@ export default class PowerUp {
     ctx.translate(this.x, this.y);
 
     // A diamond shape — distinct from any enemy.
-    ctx.fillStyle = '#44ff44';
+// Green for dual blaster, pink for wide spray.
+    if (this.type === 'dualBlaster') {
+      ctx.fillStyle = '#44ff44';
+    } else if (this.type === 'wideSpray') {
+      ctx.fillStyle = '#ff66ff';
+    } else if (this.type === 'detonator') {
+      ctx.fillStyle = '#ff3300';
+    }
+
     ctx.beginPath();
     ctx.moveTo(0, -12);
     ctx.lineTo(10, 0);

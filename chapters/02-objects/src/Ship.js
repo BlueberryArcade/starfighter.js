@@ -1,6 +1,8 @@
 import { canvas, ctx } from './game.js';
 
 import Blaster from './Blaster.js';
+import SprayParticle from './SprayParticle.js';
+import Detonator from './Detonator.js';
 
 export default class Ship {
   constructor() {
@@ -32,6 +34,12 @@ export default class Ship {
     if (this.weapon === 'dualBlaster') {
       projectiles.push(new Blaster(this.x - 12, this.y - 15));
       projectiles.push(new Blaster(this.x + 12, this.y - 15));
+    } else if (this.weapon === 'wideSpray') {
+      for (let i = 0; i < 15; i++) {
+        projectiles.push(new SprayParticle(this.x, this.y - 20));
+      }
+    } else if (this.weapon === 'detonator') {
+      projectiles.push(new Detonator(this.x, this.y - 20));
     } else {
       projectiles.push(new Blaster(this.x, this.y - 20));
     }

@@ -128,9 +128,10 @@ function spawnEnemies() {
   }
 
   // Spawn a power-up roughly every 15 seconds.
-  if (frameCount % 900 === 0) {
+   if (frameCount % 900 === 0) {
     const x = Math.random() * (canvas.width - 60) + 30;
-    powerups.push(new PowerUp(x, 'dualBlaster'));
+    const type = 'detonator';
+    powerups.push(new PowerUp(x, type));
   }
 }
 
@@ -168,9 +169,21 @@ function drawHUD() {
   }
 }
 
-function updateProjectiles(){
-    for (let i = projectiles.length - 1; i >= 0; i--) {
+function updateProjectiles() {
+  const newProjectiles = [];
+
+  for (let i = projectiles.length - 1; i >= 0; i--) {
     projectiles[i].update();
+
+    // If this projectile has exploded, collect its fragments.
+    if (projectiles[i].exploded) {
+      const fragments = projectiles[i].explode();
+      for (let j = 0; j < fragments.length; j++) {
+        newProjectiles.push(fragments[j]);
+      }
+      projectiles.splice(i, 1);
+      continue;
+    }
 
     if (projectiles[i].isOffScreen()) {
       projectiles.splice(i, 1);
@@ -180,6 +193,10 @@ function updateProjectiles(){
     projectiles[i].draw();
   }
 
+  // Add any newly spawned projectiles after the loop is done.
+  for (let i = 0; i < newProjectiles.length; i++) {
+    projectiles.push(newProjectiles[i]);
+  }
 }
 
 function updatePowerups() {
