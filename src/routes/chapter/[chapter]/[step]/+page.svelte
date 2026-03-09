@@ -106,8 +106,8 @@
     </div>
 
     {#if data.stepIndex === data.totalSteps - 1}
-      {#if data.chapterIndex < data.totalChapters - 1 && data.next}
-        <a href={data.next} class="btn btn-next-chapter">Next Chapter →</a>
+      {#if data.nextChapter}
+        <a href={data.nextChapter} class="btn btn-next-chapter">Next Chapter →</a>
       {:else}
         <span class="btn btn-next-chapter btn-disabled">Congrats! You've finished it!</span>
       {/if}

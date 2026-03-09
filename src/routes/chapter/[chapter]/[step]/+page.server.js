@@ -17,24 +17,22 @@ export async function load({ params }) {
   const chapterIndex = chapters.indexOf(chapter);
   const stepIndex = steps.indexOf(step);
 
-  // Resolve previous link
-  let prev = null;
-  if (stepIndex > 0) {
-    prev = `/chapter/${chapter}/${steps[stepIndex - 1]}`;
-  } else if (chapterIndex > 0) {
-    const prevChapter = chapters[chapterIndex - 1];
-    const prevSteps = await getSteps(prevChapter);
-    prev = `/chapter/${prevChapter}/${prevSteps[prevSteps.length - 1]}`;
-  }
+  // Resolve previous link (within current chapter only)
+  const prev = stepIndex > 0
+    ? `/chapter/${chapter}/${steps[stepIndex - 1]}`
+    : null;
 
-  // Resolve next link
-  let next = null;
-  if (stepIndex < steps.length - 1) {
-    next = `/chapter/${chapter}/${steps[stepIndex + 1]}`;
-  } else if (chapterIndex < chapters.length - 1) {
-    const nextChapter = chapters[chapterIndex + 1];
-    const nextSteps = await getSteps(nextChapter);
-    next = `/chapter/${nextChapter}/${nextSteps[0]}`;
+  // Resolve next link (within current chapter only)
+  const next = stepIndex < steps.length - 1
+    ? `/chapter/${chapter}/${steps[stepIndex + 1]}`
+    : null;
+
+  // Resolve next chapter link (for the "Next Chapter" button on the last step)
+  let nextChapter = null;
+  if (chapterIndex < chapters.length - 1) {
+    const nextChapterSlug = chapters[chapterIndex + 1];
+    const nextChapterSteps = await getSteps(nextChapterSlug);
+    nextChapter = nextChapterSteps.length ? `/chapter/${nextChapterSlug}/${nextChapterSteps[0]}` : null;
   }
 
   function slugToTitle(slug) {
@@ -62,6 +60,7 @@ export async function load({ params }) {
     content,
     prev,
     next,
+    nextChapter,
     stepIndex,
     totalSteps: steps.length,
     chapterIndex,
