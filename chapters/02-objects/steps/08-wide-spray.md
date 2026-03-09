@@ -134,3 +134,12 @@ We added a new weapon by creating one new file (`SprayParticle.js`), importing i
 That's polymorphism at work again. Every new projectile type is just a new class that follows the same shape.
 
 In the next step, we'll add one more weapon — and this one creates objects that create *other* objects.
+
+## Note on gameplay
+
+The spray weapon is pretty powerful. It almost makes the game too easy. We used `Math.random() < 0.5` to select
+the `dualBlaster` or `wideSpray` powerup. `Math.random()` is a built-in javascript function that generates a random
+number between `0` and `1`. So by saying `Math.random() < 0.5`, we're saying return `true` when it's less than `0.5`
+and `false` when it's `0.5` or greater. That means that it selects `wideSpray` about `50%` of the time. To make
+more powerful powerups more rare, we can increase this to `Math.random() < 0.9`. That means `90%` of the time
+it will choose `dualBlaster` and `10%` or the time it will choose `wideSpray`.

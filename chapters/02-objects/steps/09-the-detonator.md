@@ -48,11 +48,12 @@ Create a new file `src/Detonator.js`:
 import { ctx } from './game.js';
 import Fragment from './Fragment.js';
 
+
 export default class Detonator {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.speed = 3;
+    this.speed = 5;
     this.timer = 45;
     this.exploded = false;
   }
@@ -85,11 +86,11 @@ export default class Detonator {
 
   explode() {
     const fragments = [];
-    const count = 10;
+    const count = 100;
 
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI * 2 / count) * i;
-      const speed = 3 + Math.random() * 2;
+      const speed = 8 + Math.random() * 2;
       const vx = Math.cos(angle) * speed;
       const vy = Math.sin(angle) * speed;
       fragments.push(new Fragment(this.x, this.y, vx, vy));
@@ -190,22 +191,15 @@ Your complete `fire()` method should now be:
 Back in `main.js`, update the power-up spawning in `spawnEnemies()`. Replace the type selection line:
 
 ```js
-    const type = Math.random() < 0.5 ? 'dualBlaster' : 'wideSpray';
+    const type = Math.random() < 0.9 ? 'dualBlaster' : 'wideSpray';
 ```
 
 With:
 
 ```js
-    const roll = Math.random();
-    let type;
-    if (roll < 0.33) {
-      type = 'dualBlaster';
-    } else if (roll < 0.66) {
-      type = 'wideSpray';
-    } else {
-      type = 'detonator';
-    }
+    const type = 'detonator'; // so we can focus on it
 ```
+
 
 ## Update the PowerUp's colour
 
@@ -229,6 +223,21 @@ The detonator is the most complex thing in the game, but it follows the same rul
 
 This is one of the most powerful patterns in object-oriented programming: objects that create other objects. A spaceship that launches drones. A tree that grows branches. A chat message that spawns reply threads. The same principle scales from games to every kind of software.
 
+### Gameplay
+
+To wrap things up, update the spawn probabilities. Here is a suggestion but set these to what you want. Remember that they have to be in ascending order because the if statement will short circuit to the first true statement.
+```js
+    const roll = Math.random();
+    let type;
+    if (roll < 0.8) {
+      type = 'dualBlaster';
+    } else if (roll < 0.9) {
+      type = 'wideSpray';
+    } else {
+      type = 'detonator';
+    }
+```
+
 ## What you built
 
 Take a step back and look at what this chapter accomplished:
@@ -241,3 +250,4 @@ Take a step back and look at what this chapter accomplished:
 - Files import what they need from each other — that's **modules**.
 
 In the last chapter, the code was organized around *actions* — functions that did things to data stored elsewhere. Now the code is organized around *things* — objects that carry their own data and know how to act on it. Both approaches work, but as programs grow, organizing around objects makes it far easier to add features, find bugs, and understand what's happening.
+
