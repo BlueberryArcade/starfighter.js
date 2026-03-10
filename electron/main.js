@@ -462,7 +462,8 @@ app.whenReady().then(() => {
     title: APP_NAME,
     width: Math.round(width * 0.95),
     height: 800,
-    backgroundColor: '#000'
+    backgroundColor: '#000',
+    autoHideMenuBar: true
   });
 
   leftView = new WebContentsView({
