@@ -130,7 +130,15 @@ function spawnEnemies() {
   // Spawn a power-up roughly every 15 seconds.
    if (frameCount % 900 === 0) {
     const x = Math.random() * (canvas.width - 60) + 30;
-    const type = 'detonator';
+    const roll = Math.random();
+    let type;
+    if (roll < 0.8) {
+      type = 'dualBlaster';
+    } else if (roll < 0.9) {
+      type = 'wideSpray';
+    } else {
+      type = 'detonator';
+    }
     powerups.push(new PowerUp(x, type));
   }
 }

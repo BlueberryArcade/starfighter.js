@@ -5,6 +5,7 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import chokidar from 'chokidar';
 import { createRequire } from 'module';
+import yaml from 'js-yaml';
 
 const bs = createRequire(import.meta.url)('browser-sync');
 
@@ -439,20 +440,39 @@ function watchSrc(srcDir) {
   });
 }
 
-function openInVSCode(chapterDir) {
-  const mainFile = path.join(chapterDir, 'src', 'main.js');
-  spawn('code', [chapterDir, mainFile], { cwd: ROOT_DIR });
+// If chapters/{slug}/chapter.yaml exists and has a `game` key, return the
+// resolved game directory (relative to ROOT_DIR). Otherwise return the chapter
+// directory itself. This lets a chapter's steps live separately from the code.
+function resolveGameDir(chapterSlug) {
+  const chapterDir = path.join(CHAPTERS_DIR, chapterSlug);
+  const yamlPath = path.join(chapterDir, 'chapter.yaml');
+  if (fs.existsSync(yamlPath)) {
+    try {
+      const config = yaml.load(fs.readFileSync(yamlPath, 'utf-8'));
+      if (config && config.game) {
+        return path.resolve(ROOT_DIR, config.game);
+      }
+    } catch {
+      // Fall through to default
+    }
+  }
+  return chapterDir;
+}
+
+function openInVSCode(gameDir) {
+  const mainFile = path.join(gameDir, 'src', 'main.js');
+  spawn('code', [gameDir, mainFile], { cwd: ROOT_DIR });
 }
 
 function navigateToChapter(chapterSlug) {
   if (chapterSlug === currentChapterSlug) return;
-  const chapterDir = path.join(CHAPTERS_DIR, chapterSlug);
-  const srcDir = path.join(chapterDir, 'src');
+  const gameDir = resolveGameDir(chapterSlug);
+  const srcDir = path.join(gameDir, 'src');
 
   currentChapterSlug = chapterSlug;
-  startBrowserSync(chapterDir);
+  startBrowserSync(gameDir);
   watchSrc(srcDir);
-  openInVSCode(chapterDir);
+  openInVSCode(gameDir);
 }
 
 app.whenReady().then(() => {
@@ -562,10 +582,10 @@ app.whenReady().then(() => {
 
   if (chapterDirs.length > 0) {
     const firstSlug = chapterDirs[0];
-    const chapterDir = path.join(CHAPTERS_DIR, firstSlug);
-    const srcDir = path.join(chapterDir, 'src');
+    const gameDir = resolveGameDir(firstSlug);
+    const srcDir = path.join(gameDir, 'src');
     currentChapterSlug = firstSlug;
-    startBrowserSync(chapterDir);
+    startBrowserSync(gameDir);
     watchSrc(srcDir);
     // VS Code opened when left panel sends tutorial:navigate on mount
   }
@@ -580,6 +600,7 @@ app.whenReady().then(() => {
   // When data includes { sourceId, line }, jump directly to the error location.
   ipcMain.on('chapter:edit', (_event, data) => {
     if (!currentChapterSlug) return;
+    const gameDir = resolveGameDir(currentChapterSlug);
     if (data) {
       try {
         const { sourceId, line } = JSON.parse(data);
@@ -587,7 +608,7 @@ app.whenReady().then(() => {
           let filePath = sourceId;
           const bsOrigin = `http://localhost:${BS_PORT}`;
           if (filePath.startsWith(bsOrigin)) {
-            filePath = path.join(CHAPTERS_DIR, currentChapterSlug, filePath.slice(bsOrigin.length));
+            filePath = path.join(gameDir, filePath.slice(bsOrigin.length));
           }
           spawn('code', ['--goto', `${filePath}:${line}`], { cwd: ROOT_DIR });
           return;
@@ -596,7 +617,7 @@ app.whenReady().then(() => {
         // fall through to default open
       }
     }
-    openInVSCode(path.join(CHAPTERS_DIR, currentChapterSlug));
+    openInVSCode(gameDir);
   });
 
   // Open a specific file+line in VS Code from the console panel's clickable links.
@@ -607,7 +628,7 @@ app.whenReady().then(() => {
     let filePath = sourceId;
     const bsOrigin = `http://localhost:${BS_PORT}`;
     if (filePath.startsWith(bsOrigin) && currentChapterSlug) {
-      filePath = path.join(CHAPTERS_DIR, currentChapterSlug, filePath.slice(bsOrigin.length));
+      filePath = path.join(resolveGameDir(currentChapterSlug), filePath.slice(bsOrigin.length));
     }
     spawn('code', ['--goto', `${filePath}:${line}`], { cwd: ROOT_DIR });
   });
