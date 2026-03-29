@@ -76,4 +76,20 @@ You could load audio files instead — `new Audio('laser.wav')`. But generating 
 - Sound *is* math: frequency is pitch, amplitude is volume, time is duration
 - Each sound you build is a function — which connects directly to what you learned in Chapter 7
 
+## If you don't hear anything
+
+Browsers block audio until the user interacts with the page — a policy designed to prevent websites from auto-playing sounds. The `AudioContext` starts in a "suspended" state and needs to be resumed after a user action (like a keypress).
+
+In `main.js`, add this to the top of the `keydown` listener:
+
+```js
+import { audioCtx } from './audio.js';
+```
+
+```js
+  if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+```
+
+The first keypress resumes the audio context. From that point on, all sounds work. This only needs to happen once — after the context is running, it stays running.
+
 Remove the `t` key trigger when you're done testing. In the next step, we'll build real game sounds.

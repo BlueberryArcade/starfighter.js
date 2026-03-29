@@ -18,7 +18,7 @@ Usage:
 
 ```js
 repeat(5, (i) => {
-  console.log('Star ' + i);
+  console.log(`Star ${i}`);
 });
 ```
 
@@ -74,7 +74,7 @@ if (destroyed) {
   const ey = enemies[ei].y;
 
   after(1, () => {
-    console.log('scored', '+' + pts + ' at (' + Math.round(ex) + ',' + Math.round(ey) + ')');
+    console.log('scored', `+${pts} at (${Math.round(ex)},${Math.round(ey)})`);
   });
 
   enemies.splice(ei, 1);

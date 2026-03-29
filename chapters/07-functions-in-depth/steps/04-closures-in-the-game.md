@@ -51,7 +51,7 @@ Replace the between-waves text with:
 
 ```js
 if (betweenWaves && betweenWaveTimer === 179) {
-  showMessage('WAVE ' + (currentWave + 1), 120, '#ffffff');
+  showMessage(`WAVE ${currentWave + 1}`, 120, '#ffffff');
 }
 ```
 

@@ -1,6 +1,6 @@
 # Putting It Together
 
-You now have four tools: higher-order functions, closures, recursion, and the array methods `map`, `filter`, `forEach`, and `reduce`. Let's see how they work together in a single refactoring pass.
+You now have a full toolkit: higher-order functions, closures, recursion, destructuring, and the array methods `map`, `filter`, `forEach`, and `reduce`. Let's see how they work together in a single refactoring pass.
 
 ## Before: updateEnemies
 
@@ -66,11 +66,14 @@ The goal isn't to eliminate all `for` loops. It's to use the right tool for each
 
 ## What you learned
 
-This chapter covered four ideas:
+This chapter covered a lot of ground:
 
 - **Functions are values** — they can be stored, passed, and returned, just like numbers and strings.
+- **Template literals** — backtick strings with `${}` for embedding expressions.
 - **Closures** — a function remembers the variables around it, even after the surrounding code has finished.
+- **Comparisons and truthiness** — `===` vs `==`, falsy values, short-circuit evaluation.
 - **Recursion** — a function that calls itself, with a base case to stop.
 - **map, filter, reduce** — array methods that express common patterns (transform, select, combine) without manual loops.
+- **Destructuring** — pulling values out of objects and arrays into variables in one expression.
 
-These aren't game-specific ideas. They're fundamental to JavaScript and to programming in general. Every library you'll ever use, every codebase you'll ever read, relies on some combination of these patterns. Now you know what they mean when you see them.
+These aren't game-specific ideas. They're fundamental to JavaScript and to programming in general. Every library you'll ever use, every codebase you'll ever read, relies on some combination of these patterns. The networking chapters ahead use all of them — template literals for building messages, destructuring for parsing them, closures for managing connections, and array methods for processing data. Now you know what they mean when you see them.

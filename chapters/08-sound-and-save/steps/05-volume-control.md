@@ -74,16 +74,6 @@ In the `keydown` listener:
 
 Save and play. Press `m` to mute, press again to unmute. Every sound in the game responds instantly because they all flow through the same `masterGain` node.
 
-## AudioContext resume
-
-Browsers block audio until the user interacts with the page. If sounds don't play on the first click, add this at the top of the `keydown` listener:
-
-```js
-  if (audioCtx.state === 'suspended') { audioCtx.resume(); }
-```
-
-Import `audioCtx` from `audio.js` for this. The first keypress resumes the audio context and sounds work from then on.
-
 ## Try it
 
 - Add volume up/down with `+` and `-` keys: `setVolume(Math.min(1, masterGain.gain.value + 0.1))`.
