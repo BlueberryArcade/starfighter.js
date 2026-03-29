@@ -1,10 +1,10 @@
 # Movement Patterns
 
-Formation enemies enter from the top and fall straight down. Real arcade enemies do something more interesting — they swoop in, curve to the side, loop around, and then settle into position. Let's add scripted movement paths.
+Formation enemies enter from the top and fall straight down. Real arcade enemies do something more interesting — they swoop in, curve to the side, loop around, and then settle into a descent. Let's add scripted movement paths.
 
 ## Waypoints
 
-A waypoint is just an `{ x, y }` position. A series of waypoints defines a path. The enemy moves toward the first waypoint; when it gets close enough, it moves on to the next. When it runs out of waypoints, it falls straight down.
+A waypoint is just an `{ x, y }` position. A series of waypoints defines a path. The enemy moves toward the first waypoint; when it gets close enough, it advances to the next. When it runs out of waypoints, it falls straight down.
 
 ## Create `PatrolEnemy.js`
 
@@ -57,24 +57,22 @@ export default class PatrolEnemy extends BaseEnemy {
 
 ## How the movement works
 
-The key is this calculation:
+The key calculation:
 
 ```js
 this.x = this.x + (dx / distance) * this.speed;
 this.y = this.y + (dy / distance) * this.speed;
 ```
 
-`dx / distance` and `dy / distance` produce a **unit vector** — a direction with a length of exactly 1. Multiplying by `this.speed` moves the enemy that many pixels toward the target, regardless of the direction. This is called **normalizing** a vector and it's how you move at a consistent speed toward any point.
+`dx / distance` and `dy / distance` produce a **unit vector** — a direction with a length of exactly 1. Multiplying by `this.speed` moves the enemy that many pixels toward the target each frame, regardless of angle. This is called **normalizing** a vector — converting a direction into a fixed-speed movement. You'll use this pattern any time something needs to move toward a point at a consistent speed.
 
 ## Spawn with a path
 
-In `main.js`, import the class:
+In `main.js`:
 
 ```js
 import PatrolEnemy from './PatrolEnemy.js';
 ```
-
-Add a formation that uses waypoints:
 
 ```js
 function spawnPatrolGroup() {
@@ -85,13 +83,12 @@ function spawnPatrolGroup() {
   ];
 
   for (let i = 0; i < 4; i++) {
-    // Stagger the start positions so they enter one at a time.
     enemies.push(new PatrolEnemy(200, -20 - i * 40, path));
   }
 }
 ```
 
-Wire it into `spawnEnemies()`:
+Wire into `spawnEnemies()`:
 
 ```js
   if (frameCount % 600 === 0) {
@@ -107,10 +104,10 @@ Wire it into `spawnEnemies()`:
   }
 ```
 
-Save and play. Blue enemies enter from the top-left, fly across the screen, curve down to centre, and then fall straight once they've completed the path.
+Save and play. Blue enemies enter from the top-left, fly across the screen, curve down to centre, and then fall once they've completed the path.
 
 ## Try it
 
-- Create a circular path: generate waypoints using `Math.cos` and `Math.sin` in a loop, similar to how the detonator generates fragment angles.
-- Create a zigzag: alternate between left and right waypoints at increasing y positions.
+- Create a zigzag: alternate left/right waypoints at increasing y positions.
 - Give different enemies in the same group **different** paths that cross — they'll weave through each other.
+- Try a circular path: generate waypoints using `Math.cos` and `Math.sin` in a loop.

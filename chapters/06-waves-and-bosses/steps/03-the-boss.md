@@ -37,7 +37,6 @@ export default class Boss extends BaseEnemy {
       if (this.x > canvas.width - 60) { this.direction = -1; }
       if (this.x < 60) { this.direction = 1; }
 
-      // Fire a burst periodically.
       this.fireTimer = this.fireTimer - 1;
       if (this.fireTimer <= 0) {
         this.fireBurst();
@@ -69,7 +68,6 @@ export default class Boss extends BaseEnemy {
   }
 
   fireBurst() {
-    // Three bullets spread across the boss's width.
     this.bullets.push(new EnemyBullet(this.x - 20, this.y + 30));
     this.bullets.push(new EnemyBullet(this.x, this.y + 30));
     this.bullets.push(new EnemyBullet(this.x + 20, this.y + 30));
@@ -78,7 +76,6 @@ export default class Boss extends BaseEnemy {
   hit() {
     this.hp = this.hp - 1;
 
-    // Switch to enraged phase at half health.
     if (this.hp <= 15 && this.phase === 'patrol') {
       this.phase = 'enraged';
       this.patrolSpeed = 4;
@@ -88,7 +85,6 @@ export default class Boss extends BaseEnemy {
   }
 
   draw() {
-    // Draw bullets first (behind the boss).
     for (let i = 0; i < this.bullets.length; i++) {
       this.bullets[i].draw();
     }
@@ -96,7 +92,6 @@ export default class Boss extends BaseEnemy {
     ctx.save();
     ctx.translate(this.x, this.y);
 
-    // Main body — a wide hexagon.
     ctx.fillStyle = this.phase === 'enraged' ? '#ff2222' : '#aa44ff';
     ctx.beginPath();
     ctx.moveTo(0, -30);
@@ -108,7 +103,6 @@ export default class Boss extends BaseEnemy {
     ctx.closePath();
     ctx.fill();
 
-    // Outline
     ctx.strokeStyle = '#cc66ff';
     ctx.lineWidth = 2;
     ctx.stroke();
@@ -117,7 +111,6 @@ export default class Boss extends BaseEnemy {
   }
 
   isOffScreen() {
-    // The boss never drifts off screen — it's either entering or patrolling.
     return false;
   }
 }
@@ -125,15 +118,15 @@ export default class Boss extends BaseEnemy {
 
 ## The three phases
 
-The boss has three states stored in `this.phase`:
+The boss stores its current state in `this.phase`:
 
-1. **`'enter'`** — slides down from off-screen to `targetY`. No shooting. Once it arrives, it switches to patrol.
-2. **`'patrol'`** — moves back and forth across the screen. Fires a burst of three bullets every 60 frames (1 second).
-3. **`'enraged'`** — triggered when HP drops to half. Speed doubles, fire rate doubles, colour changes to red.
+1. **`'enter'`** — slides down from off-screen. No shooting. Switches to patrol when it reaches position.
+2. **`'patrol'`** — bounces side to side. Fires three bullets every second.
+3. **`'enraged'`** — triggered at half HP. Speed doubles, fire rate doubles, colour changes to red.
 
-Each `if` block in `update()` handles one phase. Only one phase is active at a time. The `phase` variable is checked at the top of each block, so the boss only runs the code that matches its current state.
+Each `if` block in `update()` runs only when `this.phase` matches. The `phase` variable is checked, the relevant behaviour executes, and transitions happen when conditions are met (reaching `targetY`, or losing enough HP).
 
-This is a **state machine** — a pattern where an object's behaviour depends on which state it's in, and events (like losing health) trigger transitions between states. It's one of the most common patterns in game programming. Menus, animations, AI, dialogue systems — they all use state machines.
+This pattern has a name: a **state machine**. An object's behaviour depends on which state it's in, and events trigger transitions between states. It's one of the most common patterns in game programming — menus, animations, AI, dialogue systems all use it.
 
 ## Wire it in
 
@@ -143,13 +136,13 @@ In `main.js`:
 import Boss from './Boss.js';
 ```
 
-Add a boss spawn condition. A simple approach — check score in `spawnEnemies()`:
+Add a boss spawn condition:
 
 ```js
 let bossSpawned = false;
 ```
 
-Then inside `spawnEnemies()`, before the regular spawn logic:
+Inside `spawnEnemies()`, before the regular spawn logic:
 
 ```js
   if (score >= 50 && !bossSpawned) {
@@ -161,6 +154,6 @@ Then inside `spawnEnemies()`, before the regular spawn logic:
 
 Add `bossSpawned = false;` to the restart block.
 
-Save and play. Rack up 50 points and a purple hexagon slides in from the top. It patrols, fires triple shots, and when you've chipped it to half health, it turns red and doubles its aggression.
+Save and play. Score 50 points and a purple hexagon slides in from the top, patrols, fires triple shots, and turns red and aggressive at half health.
 
-The `checkEnemyBullets()` function from step 6 already handles the boss's bullets — they're in `this.bullets`, same as the `ShooterEnemy`.
+The `checkEnemyBullets()` function from Chapter 5 already handles the boss's bullets — they're in `this.bullets`, same structure as the `ShooterEnemy`.

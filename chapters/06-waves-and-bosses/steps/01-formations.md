@@ -1,12 +1,12 @@
 # Formations
 
-Until now every enemy spawns alone. Games like Galaga spawn enemies in groups — a V-shape swooping in, a horizontal line descending together. Let's add that.
+The game has six enemy types with distinct behaviours. But they spawn one at a time, randomly, forever. The game doesn't feel *designed* — it feels like a slot machine. In this chapter we'll give it structure: formations, scripted paths, a boss fight, and a wave system.
 
 ## A formation spawner
 
-A formation is just a set of enemies created at the same time with coordinated starting positions. No group state, no leader — they're independent objects after spawn.
+A formation is a group of enemies created at the same time with coordinated starting positions. After spawn, they're independent objects — no group state, no leader.
 
-In `main.js`, add this function:
+In `main.js`, add these functions:
 
 ```js
 function spawnFormation(EnemyClass, count, startX, startY, spacingX, spacingY) {
@@ -18,11 +18,9 @@ function spawnFormation(EnemyClass, count, startX, startY, spacingX, spacingY) {
 }
 ```
 
-This creates `count` enemies of a given class, each offset by `spacingX` and `spacingY` from the previous one. Different spacing makes different formations.
+This creates `count` enemies of a given class, each offset from the previous one. Different spacing makes different shapes.
 
 ## V-formation
-
-A V is two lines that angle outward from a centre point. Add a function for it:
 
 ```js
 function spawnVFormation(EnemyClass, armLength) {
@@ -53,7 +51,7 @@ function spawnLine(EnemyClass, count) {
 }
 ```
 
-A line of enemies spanning the full width. The slight random `y` offset prevents them from looking too rigid.
+A line spanning the full width. The slight random `y` offset prevents them from looking too rigid.
 
 ## Trigger formations
 
@@ -71,10 +69,10 @@ Update `spawnEnemies()` to occasionally spawn a formation instead of a single en
   }
 ```
 
-Every 10 seconds, instead of a single enemy, a formation appears. The `return` skips the regular spawn for that frame so the two don't overlap.
+Every 10 seconds, a formation appears instead of a single enemy. The `return` skips the regular spawn for that frame.
 
 ## Try it
 
-- Spawn a V of `WaveEnemy` — they'll oscillate in sync since they share the same `age` progression.
-- Try a diagonal line: `spawnFormation(Enemy, 5, 100, -20, 60, -25)`.
-- Mix enemy types in a formation by calling `spawnFormation` multiple times with different classes and offsets.
+- Spawn a V of `WaveEnemy` — they'll oscillate in sync.
+- Try a diagonal: `spawnFormation(Enemy, 5, 100, -20, 60, -25)`.
+- Mix types by calling `spawnFormation` multiple times with different classes and offsets.

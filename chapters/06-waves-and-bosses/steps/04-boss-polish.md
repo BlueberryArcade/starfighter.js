@@ -1,10 +1,10 @@
 # Boss Polish
 
-The boss works mechanically, but it doesn't *feel* like a boss fight yet. Let's add visual feedback that makes the encounter more dramatic.
+The boss works mechanically, but it doesn't *feel* like a boss fight yet. Let's add visual feedback.
 
 ## Health bar
 
-The player should be able to see how much HP the boss has left. Add this to Boss's `draw()` method, after the main body drawing and before `ctx.restore()`:
+Add this to Boss's `draw()` method, after the main body and before `ctx.restore()`:
 
 ```js
     // Health bar above the boss.
@@ -29,17 +29,17 @@ The player should be able to see how much HP the boss has left. Add this to Boss
     ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
 ```
 
-The bar draws in the boss's local coordinate space (inside `save()/restore()`), so it moves with the boss automatically. The colour changes from green to orange to red as HP drops.
+The bar is drawn in the boss's local coordinate space, so it moves with the boss.
 
 ## Hit flash
 
-When the boss takes damage, briefly flash it white. Add a property in the constructor:
+Add a property in the Boss constructor:
 
 ```js
     this.flashTimer = 0;
 ```
 
-In `hit()`, set the flash:
+Update `hit()`:
 
 ```js
   hit() {
@@ -55,13 +55,13 @@ In `hit()`, set the flash:
   }
 ```
 
-In `update()`, tick it down (add this at the top, before the phase checks):
+In `update()`, tick it down at the top:
 
 ```js
     if (this.flashTimer > 0) { this.flashTimer = this.flashTimer - 1; }
 ```
 
-In `draw()`, change the fill style to flash white when hit. Replace the body fill line:
+In `draw()`, replace the body fill style:
 
 ```js
     if (this.flashTimer > 0) {
@@ -73,13 +73,13 @@ In `draw()`, change the fill style to flash white when hit. Replace the body fil
 
 ## Explosion on death
 
-When the boss is destroyed, spawn a burst of fragments — reusing the same `Fragment` class from the detonator. In `main.js`, import Fragment if you haven't already:
+When the boss dies, spawn a burst of fragments. In `main.js`, import Fragment if you haven't:
 
 ```js
 import Fragment from './Fragment.js';
 ```
 
-In the collision check inside `checkCollisions()`, when an enemy is destroyed:
+In `checkCollisions()`, when an enemy is destroyed:
 
 ```js
         if (destroyed) {
@@ -100,11 +100,9 @@ In the collision check inside `checkCollisions()`, when an enemy is destroyed:
         }
 ```
 
-Any enemy worth 10 or more points (currently just the boss at 50) explodes into 50 golden fragments. The fragments are added to the `projectiles` array, so they're drawn and cleaned up automatically — the same pattern as the detonator explosion.
-
 ## Guaranteed power-up drop
 
-Add a power-up drop when the boss dies. Right after the explosion code, before `enemies.splice`:
+Right after the explosion code, before `enemies.splice`:
 
 ```js
           if (enemies[ei].points >= 10) {
@@ -113,6 +111,4 @@ Add a power-up drop when the boss dies. Right after the explosion code, before `
           }
 ```
 
-Make sure `PowerUp` is imported (it should be from Chapter 2).
-
-Save and play. The boss now has a health bar, flashes white on hit, turns red and speeds up at half health, explodes into fragments on death, and drops a detonator. That's a boss fight.
+Save and play. The boss now has a health bar that shifts from green to red, flashes white on hit, explodes into fragments on death, and drops a detonator. That's a boss fight.
